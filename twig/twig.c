@@ -8,9 +8,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-/* $Id: mtree.c,v 1.3 2004/04/17 02:31:02 msoulier Exp $
- */
-
 #define TRUE  1
 #define FALSE 0
 
@@ -180,7 +177,7 @@ listdir(char *dir, int level)
 void
 usage()
 {
-    fprintf(stderr, "Usage: mtree [options] [path]\n");
+    fprintf(stderr, "Usage: twig [options] [path]\n");
     exit(1);
 }
 
