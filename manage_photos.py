@@ -55,19 +55,35 @@ def copy_images(images, output_path):
     elif not os.path.isdir(output_path):
         raise IOError, "%s is not a directory" % output_path
 
-    for topdir_name in images:
-        topdir_path = os.path.join(output_path, topdir_name)
-        if not os.path.exists(topdir_path):
-            print "Creating", topdir_path
-            os.mkdir(topdir_path)
-        elif not os.path.isdir(topdir_path):
-            raise IOError, "%s is not a directory" % topdir_path
+    for year in images:
+        year_path = os.path.join(output_path, year)
+        if not os.path.exists(year_path):
+            print "Creating", year_path
+            os.mkdir(year_path)
+        elif not os.path.isdir(year_path):
+            raise IOError, "%s is not a directory" % year_path
 
-        if topdir_name == 'unsorted':
-            for image in images[topdir_name]:
-                dest = os.path.join(topdir_path, os.path.basename(image.path))
+        if year == 'unsorted':
+            for image in images[year]:
+                dest = os.path.join(year_path, os.path.basename(image.path))
                 print "Copying %s to %s..." % (image.path, dest)
                 shutil.copy(image.path, dest)
+
+        else:
+            # Otherwise, we make a directory by the month name and copy the
+            # files there.
+            for month in images[year]:
+                month_path = os.path.join(year_path, month)
+                if not os.path.exists(month_path):
+                    print "Creating", month_path
+                    os.mkdir(month_path)
+                elif not os.path.isdir(month_path):
+                    raise IOError, "%s is not a directory" % month_path
+
+                for image in images[year][month]:
+                    dest = os.path.join(month_path, os.path.basename(image.path))
+                    print "Copying %s to %s..." % (image.path, dest)
+                    shutil.copy(image.path, dest)
 
 def main():
     if len(sys.argv) < 3:
