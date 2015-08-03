@@ -150,8 +150,10 @@ def main():
     for md5 in hashmap:
         if len(hashmap[md5]) > 1:
             log.warn("duplicate media_files found:")
-            for media_file in hashmap[md5]:
+            for i, media_file in enumerate(sorted(hashmap[md5])):
                 log.warn("    %s", media_file)
+                if i != 0:
+                    log.warn("    suggest deletion: %s", media_file.path)
 
     copy_media_files(media_files, output_path)
 
