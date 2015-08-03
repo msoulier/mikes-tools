@@ -9,6 +9,21 @@ logging.basicConfig()
 log = logging.getLogger('manage_photos')
 log.setLevel(logging.DEBUG)
 
+month_map = {
+    '1': '01_January',
+    '2': '02_February',
+    '3': '03_March',
+    '4': '04_April',
+    '5': '05_May',
+    '6': '06_June',
+    '7': '07_July',
+    '8': '08_August',
+    '9': '09_September',
+    '10': '10_October',
+    '11': '11_November',
+    '12': '12_December'
+    }
+
 class MediaFile(object):
     def __init__(self, path):
         self.path = path
@@ -27,9 +42,15 @@ class MediaFile(object):
                                                   stop_tag=datetag_exifread)
             else:
                 self.tags = pyexifinfo.get_json(self.path)[0]
+
+            datestring = None
             if datetag_exiftool in self.tags:
                 # Try two date formats.
                 datestring = self.tags[datetag_exiftool].strip()
+            elif datetag_exifread in self.tags:
+                datestring = self.tags[datetag_exifread].printable.strip()
+
+            if datestring:
                 log.debug("date in exif looks like this: '%s'", datestring)
                 try:
                     log.debug("trying first format")
@@ -81,6 +102,7 @@ def visit(media_files, dirname, names):
                               {}).setdefault(str(media_file.dt.month),
                                              []).append(media_file)
         else:
+            log.warn("No datetime found for %s", media_file.path)
             media_files.setdefault('unsorted', []).append(media_file)
 
 def copy_media_files(media_files, output_path):
@@ -109,7 +131,7 @@ def copy_media_files(media_files, output_path):
             # Otherwise, we make a directory by the month name and copy the
             # files there.
             for month in media_files[year]:
-                month_path = os.path.join(year_path, month)
+                month_path = os.path.join(year_path, month_map[month])
                 if not os.path.exists(month_path):
                     log.info("Creating %s", month_path)
                     os.mkdir(month_path)
