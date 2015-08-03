@@ -6,11 +6,18 @@ to have no upper-case or spaces in the name. Upper-case is converted to
 lower-case, and one or more spaces are converted to a single underscore.
 Parentheses are removed, as well as single and double quotes, ampersands."""
 
-import os, sys, re
+import os, sys, re, shutil
 from optparse import OptionParser
 
 error = sys.stderr.write
 directories = []
+
+def merge_dir(olddir, newdir):
+    for f in os.listdir(olddir):
+        path = os.path.join(olddir, f)
+        newpath = os.path.join(newdir, os.path.basename(path))
+        print "moving", path, "to", newpath
+        shutil.move(path, newpath)
 
 def process_directories(directories, options):
     """This function takes an array of directories, and performs the same
@@ -28,9 +35,16 @@ def process_directories(directories, options):
             else:
                 print "Renaming directory %s to %s" % (dir, newdir)
                 try:
-                    os.rename(dir, newdir)
+                    if os.path.exists(newdir):
+                        print newdir, "exists already, need to merge"
+                        merge_dir(dir, newdir)
+                        # Now just remove the old directory
+                        print "removing", dir
+                        os.rmdir(dir)
+                    else:
+                        os.rename(dir, newdir)
                 except OSError, err:
-                    error("Failed to rename %s: %s\n" % (dir, str(err)))
+                    error("Failed to rename %s to %s: %s\n" % (dir, newdir, str(err)))
 
 def fixname(oldname):
     """This function takes the name of a file or directory, and 'cleans' it,
