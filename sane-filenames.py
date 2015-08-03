@@ -39,6 +39,8 @@ def fixname(oldname):
     # FIXME - hardcoded skiplist
     if oldname.endswith('.rpm'):
         return oldname
+    if oldname == '.DS_Store':
+        return oldname
     newname = oldname.lower()
     newname = re.sub('\s+', '_', newname)
     newname = re.sub('-', '_', newname)

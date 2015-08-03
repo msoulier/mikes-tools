@@ -1,89 +1,125 @@
 #!/usr/bin/python
 
-import sys, exifread, datetime, os.path, shutil
+import sys, pyexifinfo, datetime, os.path, shutil, logging, hashlib, exifread
 
-datetag = 'EXIF DateTimeOriginal'
+datetag_exiftool = 'EXIF:DateTimeOriginal'
+datetag_exifread = 'EXIF DateTimeOriginal'
 
-class Image(object):
+logging.basicConfig()
+log = logging.getLogger('manage_photos')
+log.setLevel(logging.DEBUG)
+
+class MediaFile(object):
     def __init__(self, path):
         self.path = path
+        self.md5 = None
         inputfile = None
         try:
             inputfile = open(path, 'r')
-            self.tags = exifread.process_file(inputfile, stop_tag=datetag)
-            if datetag in self.tags:
-                self.dt = datetime.datetime.strptime(
-                    self.tags[datetag].printable,
-                    "%Y:%m:%d %H:%M:%S")
+            # Take md5 of file for comparison with others
+            self.md5 = hashlib.md5(inputfile.read()).hexdigest()
+            log.debug("md5sum: %s", self.md5)
+            # Use exifread on image files, it's faster.
+            if self.path.endswith('.jpg') or self.path.endswith('.jpeg'):
+                inputfile.seek(0)
+                self.tags = exifread.process_file(inputfile,
+                                                  details=False,
+                                                  stop_tag=datetag_exifread)
+            else:
+                self.tags = pyexifinfo.get_json(self.path)[0]
+            if datetag_exiftool in self.tags:
+                # Try two date formats.
+                datestring = self.tags[datetag_exiftool].strip()
+                log.debug("date in exif looks like this: '%s'", datestring)
+                try:
+                    log.debug("trying first format")
+                    self.dt = datetime.datetime.strptime(
+                        datestring,
+                        "%Y:%m:%d %H:%M:%S")
+                except:
+                    log.debug("First date format failed, trying second")
+                    self.dt = datetime.datetime.strptime(
+                        datestring,
+                        "%Y-%m-%d %H:%M:%S")
             else:
                 self.dt = None
 
         except Exception as err:
-            sys.stderr.write("Error processing %s: %s\n" % (path, str(err)))
+            log.exception("Error processing %s: %s\n", path, str(err))
             sys.exit(1)
         finally:
             if inputfile is not None:
                 inputfile.close()
 
     def __str__(self):
-        return "Image: %s, %s" % (self.path, self.dt)
+        return "MediaFile: %s, %s" % (self.path, self.dt)
 
     def __repr__(self):
         return str(self)
 
-def visit(images, dirname, names):
+def visit(media_files, dirname, names):
+    extensions = ['jpg', 'jpeg', 'mp4', 'avi']
     for name in names:
         path = os.path.join(dirname, name)
-        # We only care about .jpg or .jpeg files.
-        if name[-4:] != '.jpg' and name[-5:] != '.jpeg':
-            print "Skipping", path
+        if not os.path.isfile(path):
             continue
-        print "Processing image", path
-        image = Image(path)
-        if image.dt:
-            images.setdefault(str(image.dt.year),
-                              {}).setdefault(str(image.dt.month),
-                                             []).append(image)
-        else:
-            images.setdefault('unsorted', []).append(image)
+        try:
+            pieces = name.split('.')
+            extension = pieces[-1]
+            if extension not in extensions:
+                log.info("Unsupported file type: %s", path)
+                continue
 
-def copy_images(images, output_path):
-    print "Copying images to", output_path
+        except IndexError:
+            log.info("Unsupported file: %s", path)
+            continue
+
+        log.info("Processing media_file: %s", path)
+        media_file = MediaFile(path)
+        if media_file.dt:
+            media_files.setdefault(str(media_file.dt.year),
+                              {}).setdefault(str(media_file.dt.month),
+                                             []).append(media_file)
+        else:
+            media_files.setdefault('unsorted', []).append(media_file)
+
+def copy_media_files(media_files, output_path):
+    log.info("Copying media_files to %s", output_path)
     if not os.path.exists(output_path):
-        print "Creating", output_path
+        log.info("Creating", output_path)
         os.mkdir(output_path)
     elif not os.path.isdir(output_path):
         raise IOError, "%s is not a directory" % output_path
 
-    for year in images:
+    for year in media_files:
         year_path = os.path.join(output_path, year)
         if not os.path.exists(year_path):
-            print "Creating", year_path
+            log.info("Creating", year_path)
             os.mkdir(year_path)
         elif not os.path.isdir(year_path):
             raise IOError, "%s is not a directory" % year_path
 
         if year == 'unsorted':
-            for image in images[year]:
-                dest = os.path.join(year_path, os.path.basename(image.path))
-                print "Copying %s to %s..." % (image.path, dest)
-                shutil.copy(image.path, dest)
+            for media_file in media_files[year]:
+                dest = os.path.join(year_path, os.path.basename(media_file.path))
+                log.info("Copying %s to %s...", media_file.path, dest)
+                shutil.copy(media_file.path, dest)
 
         else:
             # Otherwise, we make a directory by the month name and copy the
             # files there.
-            for month in images[year]:
+            for month in media_files[year]:
                 month_path = os.path.join(year_path, month)
                 if not os.path.exists(month_path):
-                    print "Creating", month_path
+                    log.info("Creating %s", month_path)
                     os.mkdir(month_path)
                 elif not os.path.isdir(month_path):
                     raise IOError, "%s is not a directory" % month_path
 
-                for image in images[year][month]:
-                    dest = os.path.join(month_path, os.path.basename(image.path))
-                    print "Copying %s to %s..." % (image.path, dest)
-                    shutil.copy(image.path, dest)
+                for media_file in media_files[year][month]:
+                    dest = os.path.join(month_path, os.path.basename(media_file.path))
+                    log.info("Copying %s to %s...", media_file.path, dest)
+                    shutil.copy(media_file.path, dest)
 
 def main():
     if len(sys.argv) < 3:
@@ -93,16 +129,30 @@ def main():
     input_paths = sys.argv[1:-1]
     output_path = sys.argv[-1]
 
-    images = {}
+    media_files = {}
 
     for path in input_paths:
         if os.path.isfile(path):
-            visit(images, os.path.dirname(path), [os.path.basename(path)])
+            visit(media_files, os.path.dirname(path), [os.path.basename(path)])
         elif os.path.isdir(path):
-            os.path.walk(path, visit, images)
+            os.path.walk(path, visit, media_files)
         else:
-            print "Skipping non-file, non-dir", path
+            log.warn("Skipping non-file, non-dir", path)
 
-    copy_images(images, output_path)
+    # Look for duplicate files.
+    hashmap = {}
+    for year in media_files:
+        if year == 'unsorted':
+            continue
+        for month in media_files[year]:
+            for media_file in media_files[year][month]:
+                hashmap.setdefault(media_file.md5, []).append(media_file)
+    for md5 in hashmap:
+        if len(hashmap[md5]) > 1:
+            log.warn("duplicate media_files found:")
+            for media_file in hashmap[md5]:
+                log.warn("    %s", media_file)
+
+    copy_media_files(media_files, output_path)
 
 main()
