@@ -10,3 +10,9 @@ install:
 	install -m 755 weather.py ${INSTALLROOT}/bin/weather
 	install -m 755 lid2suspend.py ${INSTALLROOT}/bin/lid2suspend
 	install -m 755 manage-photos.py ${INSTALLROOT}/bin/manage-photos
+	cd jsonpp && make install INSTALLROOT=${INSTALLROOT}
+	cd twig && make && cp twig ${INSTALLROOT}/bin
+
+clean:
+	cd jsonpp && make clean
+	cd twig && make clean

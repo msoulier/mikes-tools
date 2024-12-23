@@ -1,3 +1,4 @@
+// vim: ts=4 sw=4 et ai:
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -8,10 +9,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#define TRUE  1
-#define FALSE 0
-
-int soption, doption;
+int soption, doption, aoption;
 
 int
 compare(const void *a, const void *b)
@@ -45,8 +43,7 @@ listdir(char *dir, int level)
     fullpath = malloc((sizeof(char *) * strlen(dir)) + 257);
     assert( fullpath != NULL );
 
-    if ((directory = opendir(dir)) == NULL)
-    {
+    if ((directory = opendir(dir)) == NULL) {
         sprintf(errormsg, "ERROR: Can't open directory %s: %s\n",
                 dir, strerror(errno));
         fprintf(stderr, "\n%s\n", errormsg);
@@ -54,13 +51,27 @@ listdir(char *dir, int level)
     }
     /* Make an array to sort. */
     i = 0;
-    while ((entry = readdir(directory)) != NULL)
-    {
-        if ((entry->d_name)[0] == '.')
-            continue;
+    while ((entry = readdir(directory)) != NULL) {
+        if ((entry->d_name)[0] == '.') {
+            // If the aoption is set, we want to follow dotfiles, but not ..
+            if (aoption) {
+                if (strlen(entry->d_name) > 1) {
+                    if ((entry->d_name)[1] == '.') {
+                        // It's .., skip it
+                        continue;
+                    }
+                    // else we want to drop through and continue
+                } else {
+                    // it's . - skip it
+                    continue;
+                }
+                // otherwise we want to follow it
+            } else {
+                continue;
+            }
+        }
         /* Double the size of the array if we go over. */
-        if (i >= listsize)
-        {
+        if (i >= listsize) {
             listsize *= 2;
             dirlist = realloc(dirlist, sizeof(char *) * listsize);
         }
@@ -73,40 +84,35 @@ listdir(char *dir, int level)
     qsort(dirlist, nfiles, sizeof *dirlist, compare);
 
     /* Print out the files. */
-    for (i = 0; i < nfiles; ++i)
-    {
+    for (i = 0; i < nfiles; ++i) {
         /* Compose the full path to the file. */
         strcpy(fullpath, dir);
         /* Put a / on the end of the path if there isn't already one there. */
-        if (fullpath[strlen(fullpath) - 1] != '/')
+        if (fullpath[strlen(fullpath) - 1] != '/') {
             strcat(fullpath, "/");
+        }
         strcat(fullpath, dirlist[i]);
         /* Stat the file. */
-        if (lstat(fullpath, &filestat) != 0)
-        {
+        if (lstat(fullpath, &filestat) != 0) {
             sprintf(errormsg, "ERROR: Cannot stat %s: %s",
                     fullpath, strerror(errno));
             fprintf(stderr, "\n%s\n", errormsg);
             continue;
         }
-        isdir = FALSE;
-        islnk = FALSE;
-        linkexists = FALSE;
+        isdir = 0;
+        islnk = 0;
+        linkexists = 0;
         /* Is this a directory? */
-        if (S_ISDIR(filestat.st_mode))
-            isdir = TRUE;
-        else if (S_ISLNK(filestat.st_mode))
-        {
-            islnk = TRUE;
-            if ((linksize = readlink(fullpath, linkpath, sizeof(linkpath))) < 0)
-            {
+        if (S_ISDIR(filestat.st_mode)) {
+            isdir = 1;
+        } else if (S_ISLNK(filestat.st_mode)) {
+            islnk = 1;
+            if ((linksize = readlink(fullpath, linkpath, sizeof(linkpath))) < 0) {
                 sprintf(errormsg, "ERROR: Could not resolve link %s: %s",
                         fullpath, strerror(errno));
                 fprintf(stderr, "\n%s\n", errormsg);
                 linkpath[0] = '\0';
-            }
-            else
-            {
+            } else {
                 /* Null terminate the link. */
                 linkpath[linksize] = '\0';
                 /* Is it an absolute path? */
@@ -131,39 +137,46 @@ listdir(char *dir, int level)
                 }
                 /* Does it exist? */
                 if (!access(linkfullpath, F_OK))
-                    linkexists = TRUE;
+                    linkexists = 1;
             }
         }
         /* Now, if the directory option is set, and this is not a directory,
          * then we don't want to print it.
          */
-        if (doption && !isdir)
+        if (doption && !isdir) {
             continue;
+        }
         /* Print out the header for the file. */
-        for (j = 0; j < level; ++j)
+        for (j = 0; j < level; ++j) {
             printf("|    ");
+        }
         /* Print out the last indent. */
-        if (i == nfiles - 1)
+        if (i == nfiles - 1) {
             printf("`-- ");
-        else
+        } else {
             printf("|-- ");
+        }
         /* Now, if the size option was used, print the size. */
-        if (soption)
+        if (soption) {
             printf("[%9d] ", (int)filestat.st_size);
+        }
         /* The filename... */
         printf("%s", dirlist[i]);
         /* If it's a link, print out the target. */
         if ((islnk) && (linkpath[0] != '\0'))
         {
             printf(" -> ");
-            if (linkexists)
+            if (linkexists) {
                 printf("%s", linkpath);
-            else
+            }
+            else {
                 printf("(%s)", linkpath);
+            }
         }
         printf("\n");
-        if (isdir)
+        if (isdir) {
             listdir(fullpath, level + 1);
+        }
     }
 
     /* Clean up after ourselves. */
@@ -178,6 +191,11 @@ void
 usage()
 {
     fprintf(stderr, "Usage: twig [options] [path]\n");
+    fprintf(stderr, "   Options:\n");
+    fprintf(stderr, "       -h print help\n");
+    fprintf(stderr, "       -a show dotfiles\n");
+    fprintf(stderr, "       -d only show directories\n");
+    fprintf(stderr, "       -s print file sizes\n");
     exit(1);
 }
 
@@ -187,18 +205,22 @@ main(int argc, char *argv[])
     char dir[1024], argchar;
     int i;
 
-    doption = soption = FALSE;
+    aoption = doption = soption = 0;
 
     /* Parse arguments. */
     i = 0;
-    while ((argchar = getopt(argc, argv, "sd")) >= 0)
+    while ((argchar = getopt(argc, argv, "asdh")) >= 0)
     {
         i++;
         switch (argchar)
         {
-            case 'd': doption = TRUE;
+            case 'a': aoption = 1;
                       break;
-            case 's': soption = TRUE;
+            case 'd': doption = 1;
+                      break;
+            case 's': soption = 1;
+                      break;
+            case 'h': usage();
                       break;
             default:  usage();
         }
