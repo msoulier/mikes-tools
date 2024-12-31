@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys, pyexifinfo, datetime, os.path, shutil, logging, hashlib, exifread
 
@@ -111,7 +111,7 @@ def copy_media_files(media_files, output_path):
         log.info("Creating", output_path)
         os.mkdir(output_path)
     elif not os.path.isdir(output_path):
-        raise IOError, "%s is not a directory" % output_path
+        raise IOError("%s is not a directory" % output_path)
 
     for year in media_files:
         year_path = os.path.join(output_path, year)
@@ -119,7 +119,7 @@ def copy_media_files(media_files, output_path):
             log.info("Creating", year_path)
             os.mkdir(year_path)
         elif not os.path.isdir(year_path):
-            raise IOError, "%s is not a directory" % year_path
+            raise IOError("%s is not a directory" % year_path)
 
         if year == 'unsorted':
             for media_file in media_files[year]:
@@ -136,7 +136,7 @@ def copy_media_files(media_files, output_path):
                     log.info("Creating %s", month_path)
                     os.mkdir(month_path)
                 elif not os.path.isdir(month_path):
-                    raise IOError, "%s is not a directory" % month_path
+                    raise IOError("%s is not a directory" % month_path)
 
                 for media_file in media_files[year][month]:
                     dest = os.path.join(month_path, os.path.basename(media_file.path))

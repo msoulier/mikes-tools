@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """The purpose of this script is to recursively traverse a directory tree
 pointed to as a command-line argument, and convert any files found
@@ -6,56 +6,23 @@ to have no upper-case or spaces in the name. Upper-case is converted to
 lower-case, and one or more spaces are converted to a single underscore.
 Parentheses are removed, as well as single and double quotes, ampersands."""
 
-import os, sys, re, shutil
+import os
+import sys
+import re
 from optparse import OptionParser
 
+assert( sys.version_info.major == 3 )
+
 error = sys.stderr.write
-directories = []
 
-def merge_dir(olddir, newdir):
-    for f in os.listdir(olddir):
-        path = os.path.join(olddir, f)
-        newpath = os.path.join(newdir, os.path.basename(path))
-        print "moving", path, "to", newpath
-        shutil.move(path, newpath)
-
-def process_directories(directories, options):
-    """This function takes an array of directories, and performs the same
-    operations done to fix file names on the directories, renaming them to be
-    more amenable."""
-    # Reverse the directory listing, so we work from the bottom up. 
-    directories.reverse()
-    for dir in directories:
-        head, tail = os.path.split(dir)
-        newtail = fixname(tail)
-        newdir = os.path.join(head, newtail)
-        if newdir != dir:
-            if options.test:
-                print "Test mode: would rename %s to %s" % (dir, newdir)
-            else:
-                print "Renaming directory %s to %s" % (dir, newdir)
-                try:
-                    if os.path.exists(newdir):
-                        print newdir, "exists already, need to merge"
-                        merge_dir(dir, newdir)
-                        # Now just remove the old directory
-                        print "removing", dir
-                        os.rmdir(dir)
-                    else:
-                        os.rename(dir, newdir)
-                except OSError, err:
-                    error("Failed to rename %s to %s: %s\n" % (dir, newdir, str(err)))
-
-def fixname(oldname):
+def fixname(oldname: str) -> str:
     """This function takes the name of a file or directory, and 'cleans' it,
     removing or transforming undesirable characters, and returns the new
     name."""
     # FIXME - hardcoded skiplist
     if oldname.endswith('.rpm'):
         return oldname
-    if oldname == '.DS_Store':
-        return oldname
-    newname = oldname.lower()
+    newname: str = oldname.lower()
     newname = re.sub('\s+', '_', newname)
     newname = re.sub('-', '_', newname)
     newname = re.sub('[@?]', '_', newname)
@@ -70,40 +37,42 @@ def fixname(oldname):
     newname = re.sub(r'^[^a-z0-9]+', '', newname)
     return newname
 
-def visit(options, dirname, names):
-    """This function's purpose is to act upon every directory traversed
-    by the os.path.walk function. It performs the actual conversion of 
-    the files."""
-    global directories
-    if not dirname:
-        dirname = '.'
+def fixdir(options, root: str, dirname: str):
+    newname: str = fixname(dirname)
+    if newname != dirname:
+        oldpath: str = os.path.join(root, dirname)
+        newpath: str = os.path.join(root, newname)
+        if options.test:
+            print("Test mode: would rename directory", oldpath, "to", newpath)
+        else:
+            print("Renaming directory", oldpath, "to", newpath)
+            os.rename(oldpath, newpath)
 
-    if options.directories:
-        directories.append(dirname)
-    if not options.files:
-        return
-
-    files = filter(lambda x: os.path.isfile(dirname + os.sep + x), names)
-
+def visit(options, dirname: str, files: list[str]):
+    """Walk the tree at path."""
     for oldfile in files:
-        newfile = fixname(oldfile)
+        newfile: str = fixname(oldfile)
         if oldfile != newfile:
+            oldpath: str = os.path.join(dirname, oldfile)
+            newpath: str = os.path.join(dirname, newfile)
             if options.test:
-                print "Test mode: would rename %s to %s" % (oldfile, newfile)
+                print("Test mode: would rename", oldpath, "to", newpath)
             else:
-                print "Renaming %s to %s" % (oldfile, newfile)
+                print("Renaming", oldpath, "to", newpath)
+                if not options.force and os.path.exists(newpath):
+                    error("%s exists already, use --force option to force overwrite" % newpath)
+                    continue
                 try:
-                    os.rename(dirname + os.sep + oldfile, 
-                              dirname + os.sep + newfile)
-                except OSError, err:
+                    os.rename(oldpath, newpath)
+                except OSError as err:
                     error("Failed to rename %s: %s\n" % (oldfile, str(err)))
 
 def main():
     """This is the main function, responsible for validating the command-line
     arguments and dispatching any events."""
-    usage = "sane-filenames [-d|--directories] [-n|--nofiles] " + \
-            "[-t|--test] <paths>"
-    parser = OptionParser(usage=usage)
+    usage: str = "sane-filenames [-d|--directories] [-n|--nofiles] " + \
+                 "[-t|--test] <paths>"
+    parser: OptionParser = OptionParser(usage=usage)
     parser.add_option('-d',
                       '--directories',
                       action='store_true',
@@ -122,20 +91,29 @@ def main():
                       dest='test',
                       help='test run, make no changes',
                       default=False)
+    parser.add_option('-f',
+                      '--force',
+                      action='store_true',
+                      dest='force',
+                      help='force overwriting of existing files',
+                      default=False)
     (options, args) = parser.parse_args()
     if len(args) < 1:
         parser.print_help()
         sys.exit(1)
     for path in args:
         if os.path.isdir(path):
-            os.path.walk(path, visit, options)
+            for root, dirs, files in os.walk(path, topdown=False):
+                visit(options, root, files)
+                if options.directories:
+                    for d in dirs:
+                        fixdir(options, root, d)
+            fixdir(options, os.path.dirname(path), os.path.basename(path))
         else:
             # If it's not a directory, it's a file - fix it
             # call visit() on the file
-            fname = os.path.basename(path)
+            fname: str = os.path.basename(path)
             visit(options, os.path.dirname(path), [fname])
-    if options.directories:
-        process_directories(directories, options)
     sys.exit(0)
 
 if __name__ == '__main__':
