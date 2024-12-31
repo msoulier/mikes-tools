@@ -1,6 +1,13 @@
 #!/home/msoulier/envs/miketools/bin/python
 
-import sys, pyexifinfo, datetime, os.path, shutil, logging, hashlib, exifread
+import sys
+import pyexifinfo
+import datetime
+import os
+import shutil
+import logging
+import hashlib
+import exifread
 
 datetag_exiftool = 'EXIF:DateTimeOriginal'
 datetag_exifread = 'EXIF DateTimeOriginal'
@@ -27,10 +34,11 @@ month_map = {
 class MediaFile(object):
     def __init__(self, path):
         self.path = path
+        self.name = os.path.basename(self.path)
         self.md5 = None
         inputfile = None
         try:
-            inputfile = open(path, 'r')
+            inputfile = open(path, 'rb')
             # Take md5 of file for comparison with others
             self.md5 = hashlib.md5(inputfile.read()).hexdigest()
             log.debug("md5sum: %s", self.md5)
@@ -78,6 +86,24 @@ class MediaFile(object):
     def __repr__(self):
         return str(self)
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __ne__(self, other):
+        return self.name != other.name
+
+    def __gt__(self, other):
+        return self.name > other.name
+
+    def __lt__(self, other):
+        return self.name < other.name
+
+    def __ge__(self, other):
+        return self.name >= other.name
+
+    def __le__(self, other):
+        return self.name <= other.name
+
 def visit(media_files, dirname, names):
     extensions = ['jpg', 'jpeg', 'mp4', 'avi']
     for name in names:
@@ -102,7 +128,7 @@ def visit(media_files, dirname, names):
                               {}).setdefault(str(media_file.dt.month),
                                              []).append(media_file)
         else:
-            log.warn("No datetime found for %s", media_file.path)
+            log.warning("No datetime found for %s", media_file.path)
             media_files.setdefault('unsorted', []).append(media_file)
 
 def copy_media_files(media_files, output_path):
@@ -157,9 +183,10 @@ def main():
         if os.path.isfile(path):
             visit(media_files, os.path.dirname(path), [os.path.basename(path)])
         elif os.path.isdir(path):
-            os.path.walk(path, visit, media_files)
+            for root, dirs, files in os.walk(path, topdown=False):
+                visit(media_files, root, files)
         else:
-            log.warn("Skipping non-file, non-dir", path)
+            log.warning("Skipping non-file, non-dir", path)
 
     # Look for duplicate files.
     hashmap = {}
@@ -171,11 +198,11 @@ def main():
                 hashmap.setdefault(media_file.md5, []).append(media_file)
     for md5 in hashmap:
         if len(hashmap[md5]) > 1:
-            log.warn("duplicate media_files found:")
+            log.warning("duplicate media_files found:")
             for i, media_file in enumerate(sorted(hashmap[md5])):
-                log.warn("    %s", media_file)
+                log.warning("    %s", media_file)
                 if i != 0:
-                    log.warn("    suggest deletion: %s", media_file.path)
+                    log.warning("    suggest deletion: %s", media_file.path)
 
     copy_media_files(media_files, output_path)
 
