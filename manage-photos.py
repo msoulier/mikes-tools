@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/msoulier/envs/miketools/bin/python
 
 import sys, pyexifinfo, datetime, os.path, shutil, logging, hashlib, exifread
 
