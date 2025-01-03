@@ -9,6 +9,7 @@ Parentheses are removed, as well as single and double quotes, ampersands."""
 import os
 import sys
 import re
+# FIXME: should be argparse
 from optparse import OptionParser
 
 assert( sys.version_info.major == 3 )
