@@ -1,13 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """This is my weather plugin to Conky, pulling the latest forecast for Ottawa
 from Environment Canada's RSS feed."""
 
-import urllib, sys, textwrap
-from xml.etree.ElementTree import parse
+import urllib.request, sys, textwrap
+from xml.etree.ElementTree import fromstring
 from optparse import OptionParser
 
-rssfeed = 'http://www.weatheroffice.gc.ca/rss/city/on-118_e.xml'
+rssfeed = 'https://weather.gc.ca/rss/city/on-118_e.xml'
 
 def parse_options():
     usage="weather [options]"
@@ -39,7 +39,7 @@ def parse_options():
 options = parse_options()
 wrapper = textwrap.TextWrapper(width=options.wrap, subsequent_indent="    ")
 count = 0
-for elem in parse(urllib.urlopen(rssfeed)).findall('channel/item/title'):
+for elem in fromstring(urllib.request.urlopen(rssfeed).read()).findall('entry/title'):
     s = elem.text.encode('utf8', 'ignore')
     lines = wrapper.wrap(s)
     for line in lines:
@@ -47,7 +47,7 @@ for elem in parse(urllib.urlopen(rssfeed)).findall('channel/item/title'):
         if options.lines and count > options.lines:
             break
         else:
-            print line
+            print(line)
     else:
         continue
     break
