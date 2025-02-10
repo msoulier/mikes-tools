@@ -1,0 +1,86 @@
+#!/bin/sh
+
+usage="$0 <verb>"
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $usage" 1>&2
+    exit 1
+fi
+
+verb=$1
+
+if [ -e "$HOME/.music.player" ]; then
+    player=$(cat $HOME/.music.player)
+else
+    echo "No $HOME/.music.player file!" 1>&2
+    exit 1
+fi
+
+echo "player $player, verb $verb"
+
+case $player in
+    spotify)
+        case $verb in
+            next)
+                dbus-send --print-reply \
+                    --dest=org.mpris.MediaPlayer2.spotify \
+                    /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next
+                    ;;
+            prev)
+                dbus-send --print-reply \
+                    --dest=org.mpris.MediaPlayer2.spotify \
+                    /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous
+                    ;;
+            play)
+                dbus-send --print-reply \
+                    --dest=org.mpris.MediaPlayer2.spotify \
+                    /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause
+                    ;;
+            pause)
+                dbus-send --print-reply \
+                    --dest=org.mpris.MediaPlayer2.spotify \
+                    /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause
+                    ;;
+            stop)
+                dbus-send --print-reply \
+                    --dest=org.mpris.MediaPlayer2.spotify \
+                    /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop
+                    ;;
+            *)
+                echo "Unsupported verb: $verb" 1>&2
+                exit 1
+                ;;
+        esac
+        ;;
+
+    cmus)
+        case $verb in
+            next)
+                cmus-remote --next
+                ;;
+            prev)
+                cmus-remote --prev
+                ;;
+            play)
+                cmus-remote --play
+                ;;
+            pause)
+                cmus-remote --pause
+                ;;
+            stop)
+                cmus-remote --stop
+                ;;
+            *)
+                echo "Unsupported verb: $verb" 1>&2
+                exit 1
+                ;;
+        esac
+        ;;
+
+    *)
+        echo "Unsupported player: $player" 1>&2
+        exit 1
+        ;;
+esac
+
+exit 0

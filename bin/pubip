@@ -1,0 +1,22 @@
+#!/bin/sh
+
+maxtime=3
+
+case "$1" in
+    -4)
+        ipv4=$(curl --ipv4 -s --max-time $maxtime ifconfig.me)
+        echo $ipv4
+        ;;
+    -6)
+        ipv6=$(curl --ipv6 -s --max-time $maxtime ifconfig.me)
+        echo $ipv6
+        ;;
+    *)
+        ipv4=$(curl --ipv4 -s --max-time $maxtime ifconfig.me)
+        ipv6=$(curl --ipv6 -s --max-time $maxtime ifconfig.me)
+        echo "Currently your public IPv4 address is $ipv4"
+        echo "Currently your public IPv6 address is $ipv6"
+        ;;
+esac
+
+exit 0

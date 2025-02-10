@@ -1,0 +1,41 @@
+#!/bin/sh
+
+repo=$(basename $(pwd))
+specfile=$(ls *.spec)
+
+topdir=`pwd`/.rpmbuild
+if [ ! -e $topdir ]; then
+    echo "$topdir does not exist - creating"
+    mkdir -p $topdir/SOURCES
+fi
+
+(
+    cd .. 
+    version=$(grep ^Version $repo/$specfile | head -1 | awk -F: '{print $2}' | cut -b2-)
+    # If version is a macro we need to find its definition.
+    if echo $version | grep -q '%'
+    then
+        version=$(grep '^%define version' $repo/$specfile | awk '{print $3}')
+    fi
+
+    if [ "x$version" = "x" ]; then
+        echo "Parse error: Can't find version in specfile." 1>&2
+        exit 1
+    fi
+
+    echo "Found version in specfile: $version"
+
+    fullname=${specfile%%.spec}-${version}
+    clonepath=/var/tmp/$fullname
+
+    rm -rf $clonepath
+    git clone $repo $clonepath || exit 1
+    rm -rf $clonepath/.git*
+
+    rpm_repo=$topdir
+
+    dest=$rpm_repo/SOURCES/${fullname}.tar.gz
+    tar -C /var/tmp -zcvf $dest $fullname && rm -rf $clonepath
+
+    rpmbuild -ta --define "_topdir $topdir" $dest
+)

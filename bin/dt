@@ -1,0 +1,51 @@
+#!/bin/sh
+
+if [ $# -lt 1 ]; then
+    echo "$0 <token>" 1>&2
+    exit 1
+fi
+
+export PATH="$HOME/bin:$PATH"
+
+DIGITALOCEAN_TOKEN=$1
+RECORDS_URL="https://api.digitalocean.com/v2/domains/digitaltorque.ca/records"
+
+ipv4_record=358720103
+ipv6_record=358816993
+
+for record in $ipv4_record $ipv6_record
+do
+    echo
+    echo "Reading record $record"
+    curl -X GET -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $DIGITALOCEAN_TOKEN" \
+        $RECORDS_URL/$record 2>/dev/null | jsonpp
+done
+
+echo "checking public ipv4 address"
+ipv4=$(pubip -4)
+echo "discovered public ipv4 address of $ipv4"
+
+echo "checking public ipv6 address"
+ipv6=$(pubip -6)
+if [ "x$ipv6" != "x" ]; then
+    echo "discovered public ipv6 address of $ipv6"
+else
+    echo "no ipv6 address found"
+fi
+
+echo "setting ipv4 address"
+curl -X PUT -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $DIGITALOCEAN_TOKEN" \
+    -d "{\"data\": \"$ipv4\"}" \
+    $RECORDS_URL/$ipv4_record 2>/dev/null | jsonpp
+
+if [ "x$ipv6" != "x" ]; then
+    echo "setting ipv6 address"
+    curl -X PUT -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $DIGITALOCEAN_TOKEN" \
+        -d "{\"data\": \"$ipv6\"}" \
+        $RECORDS_URL/$ipv6_record 2>/dev/null | jsonpp
+else
+    echo "Skipping blank ipv6 address"
+fi

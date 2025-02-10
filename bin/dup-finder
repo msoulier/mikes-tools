@@ -1,0 +1,44 @@
+#!/usr/bin/python3
+
+import hashlib, os, sys
+
+all_files = {}
+
+def visit(dirname, names):
+    print("    visiting", dirname)
+    for name in sorted(names):
+        full_path = os.path.join(dirname, name)
+        if os.path.isfile(full_path):
+            with open(full_path, "rb") as f:
+                md5 = hashlib.md5(f.read()).hexdigest()
+                if md5 not in all_files:
+                    all_files[md5] = []
+                all_files[md5].append(full_path)
+
+def main():
+    delete = False
+    if len(sys.argv) < 2:
+        sys.stderr.write("Usage: %s [-d] <directory>\n" % sys.argv[0])
+        sys.exit(1)
+    print("building md5 list of files...")
+    for idir in sys.argv[1:]:
+        if idir == "-d":
+            delete = True
+            print("duplicate deletion enabled")
+            continue
+        for root, dirs, files in os.walk(idir):
+            visit(root, files)
+
+    print("looking for duplicates...")
+    for md5 in all_files:
+        if len(all_files[md5]) > 1:
+            print("    duplicates found:")
+            for i, dup in enumerate(all_files[md5]):
+                print("        ", dup)
+                if delete and i > 0:
+                    answer = input("         ^^^^ delete? [y/N] ")
+                    if answer == "y":
+                        os.unlink(dup)
+
+if __name__ == '__main__':
+    main()

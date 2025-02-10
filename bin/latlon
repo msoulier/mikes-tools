@@ -1,0 +1,98 @@
+#!/usr/bin/python
+
+import sys, re
+from optparse import OptionParser
+
+def parse_options():
+    usage = "latlon --convert <value> [--dms|--deg]\n\n" \
+            "Eg: latlon --convert 45.425368,-75.699903 --dms\n" \
+            '    latlon --convert "45 25 31.32,-75 41 59.65" --deg'
+    parser = OptionParser(usage=usage)
+    parser.add_option('-S',
+                      '--dms',
+                      action='store_true',
+                      dest='dms',
+                      help='convert to degrees, minutes, seconds',
+                      default=False)
+    parser.add_option('-D',
+                      '--deg',
+                      action='store_true',
+                      dest='deg',
+                      help='convert to degrees',
+                      default=False)
+    parser.add_option('-c',
+                      '--convert',
+                      action='store',
+                      dest='convert',
+                      help='convert the value provided',
+                      default='')
+    options, args = parser.parse_args()
+
+    if not options.convert:
+        parser.print_help()
+        sys.exit(1)
+    elif not options.dms and not options.deg:
+        parser.print_help()
+        sys.exit(1)
+
+    return options
+
+def minsec(frac):
+    minutes = abs( frac / ( 1 / 60.0 ) )
+    whole_minutes = int(minutes)
+    frac = minutes - whole_minutes
+
+    seconds = frac / ( 1 / 60.0 )
+
+    return whole_minutes, seconds
+
+def dms(lat, lon):
+    lat = float(lat)
+    lon = float(lon)
+    lat_int = int(lat)
+    lon_int = int(lon)
+    lat -= lat_int
+    lon -= lon_int
+    lat_min, lat_sec = minsec(lat)
+    lon_min, lon_sec = minsec(lon)
+
+    return "%d %d %0.2f,%d %d %0.2f" % (lat_int, lat_min, lat_sec,
+                                        lon_int, lon_min, lon_sec)
+
+def dec(dms):
+    degrees, minutes, seconds = re.split(r'\s+', dms)
+    degrees = int(degrees)
+    minutes = int(minutes)
+    seconds = float(seconds)
+    if degrees < 0:
+        minutes *= -1
+        seconds *= -1
+
+    return degrees + ( minutes / 60.0 ) + ( seconds / 3600.0 )
+
+def deg(lat, lon):
+    lat_dec = dec(lat)
+    lon_dec = dec(lon)
+
+    return "%f,%f" % (lat_dec, lon_dec)
+
+def convert(options):
+    lat, lon = options.convert.split(',')
+    if options.dms:
+        result = dms(lat, lon)
+    elif options.deg:
+        result = deg(lat, lon)
+    else:
+        raise AssertionError, "How'd we get here?"
+
+    print result
+
+def main():
+    options = parse_options()
+    if options.convert:
+        convert(options)
+    else:
+        raise AssertionError, "How'd we get here?"
+
+if __name__ == '__main__':
+    main()

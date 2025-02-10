@@ -1,0 +1,38 @@
+#!/bin/sh
+
+usage="$0 <input files in order> <output file>"
+
+if [ $# -lt 3 ]; then
+    echo $usage 1>&2
+    exit 1
+fi
+
+nargs=$#
+
+rm -f intermediate*.ts
+
+concat_list=""
+count=0
+while true
+do
+    count=`expr $count + 1`
+    if [ $count -eq $nargs ]; then
+        break
+    fi
+    infile=$1; shift
+    echo "===> Creating intermediate file for $infile"
+    ffmpeg -i $infile -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate${count}.ts
+    concat_list="$concat_list intermediate${count}.ts"
+done
+
+outfile=$1
+
+concat_list=$(echo $concat_list | tr ' ' '|')
+echo "===> concat list is $concat_list"
+
+echo "===> merging into $outfile"
+ffmpeg -i "concat:$concat_list" -c copy -bsf:a aac_adtstoasc $outfile
+
+rm -f intermediate*.ts
+
+exit 0

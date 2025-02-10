@@ -1,0 +1,26 @@
+#!/usr/bin/python3
+# vim: ft=python ts=4 sw=4 et ai:
+
+"""This script emulates the setlock binary from daemontools, working
+as a simple wrapper around say, a cronjob, to use advisory locking
+to prevent concurrent execution."""
+
+import sys, fcntl, os
+
+def main():
+    if len(sys.argv) < 3:
+        sys.stderr.write("Usage: %s <path to lockfile> <program> [args]\n" % sys.argv[0])
+        sys.exit(1)
+        # FIXME: real argument parsing coming
+
+    lockpath = sys.argv[1]
+
+    lockfile = open(lockpath, "w")
+    fd = lockfile.fileno()
+    fcntl.fcntl(fd, not fcntl.FD_CLOEXEC)
+    fcntl.flock(lockfile, fcntl.LOCK_EX)
+
+    os.execl(sys.argv[2], *sys.argv[2:])
+
+if __name__ == '__main__':
+    main()

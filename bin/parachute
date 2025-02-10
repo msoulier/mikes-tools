@@ -1,0 +1,260 @@
+#!/bin/sh
+
+# Minimum config #########
+BACKUP_HOST=
+BACKUP_USER=
+LOCAL_TARBALL_PREFIX=
+OUTPUT_DIRECTORY=
+KEEP=
+REMOTE_PATHS=
+##########################
+# Optional config ########
+##########################
+ADMIN_EMAIL=
+PRE_BACKUP=
+CLOBBER=
+MAX_RECURSION=${MAX_RECURSION:-30}
+##########################
+
+LOG_DIR=${LOG_DIR:-$HOME/log}
+
+die() {
+    msg=$1
+    echo "ERROR: $msg" 1>&2
+    if [ "x$ADMIN_EMAIL" != "x" ]; then
+        echo "$msg" | mail -s "backup $BACKUP_HOST failed" $ADMIN_EMAIL
+    fi
+    exit 1
+}
+
+log() {
+    echo `date` ": $1" 1>&2
+}
+
+confirm_config() {
+    errors=no
+    if [ "x$BACKUP_HOST" = "x" ]; then
+        log "BACKUP_HOST must be set"
+        errors=yes
+    else
+        log "BACKUP_HOST is $BACKUP_HOST"
+    fi
+
+    if [ "x$BACKUP_USER" = "x" ]; then
+        if [ "x$BACKUP_HOST" = "xlocal" ]; then
+            BACKUP_USER=$(whoami)
+            log "Local backup, user is $BACKUP_USER"
+        else
+            log "BACKUP_USER must be set"
+            errors=yes
+        fi
+    else
+        log "BACKUP_USER is $BACKUP_USER"
+    fi
+
+    if [ "x$LOCAL_TARBALL_PREFIX" = "x" ]; then
+        log "LOCAL_TARBALL_PREFIX must be set"
+        errors=yes
+    else
+        log "LOCAL_TARBALL_PREFIX is $LOCAL_TARBALL_PREFIX"
+    fi
+
+    if [ "x$KEEP" = "x" ]; then
+        log "KEEP must be set"
+        errors=yes
+    else
+        log "KEEP is $KEEP"
+    fi
+
+    if [ "x$OUTPUT_DIRECTORY" = "x" ]; then
+        log "OUTPUT_DIRECTORY must be set"
+        errors=yes
+    else
+        log "OUTPUT_DIRECTORY is $OUTPUT_DIRECTORY"
+        if [ ! -d $OUTPUT_DIRECTORY ]; then
+            die "$OUTPUT_DIRECTORY does not exist"
+        fi
+    fi
+
+    if [ "x$REMOTE_PATHS" = "x" ]; then
+        log "KEEP must be set"
+        errors=yes
+    else
+        log "REMOTE_PATHS is $REMOTE_PATHS"
+        REL_REMOTE_PATHS=""
+        for path in $REMOTE_PATHS
+        do
+            if echo $path | grep -q ^/
+            then
+                relpath=$(echo $path | sed -e 's;^/;;')
+                REL_REMOTE_PATHS="$REL_REMOTE_PATHS $relpath"
+            else
+                die "All remote paths must be absolute from the root directory."
+            fi
+        done
+    fi
+
+    if [ $errors = "yes" ]; then
+        die "Fix the errors in your config file and try again."
+    fi
+    log
+}
+
+confirm_ssh() {
+    if [ "x$BACKUP_HOST" = "xlocal" ]; then
+        log "ssh requirement unnecessary for local backup"
+    else
+        if [ "x$SSH_AUTH_SOCK" = "x" ]; then
+            die "SSH_AUTH_SOCK is not set"
+        fi
+        if [ "x$SSH_AGENT_PID" = "x" ]; then
+            die "SSH_AGENT_PID is not set"
+        fi
+    fi
+}
+
+removeold() {
+    # Only keep KEEP files
+    log "Counting backup files"
+    count=$(ls ${LOCAL_TARBALL_PREFIX}* | wc -l)
+    log "Found $count"
+    todelete=$(( $count - $KEEP ))
+
+    if [ $todelete -gt 0 ]; then
+        count=0
+        for backup_file in $(ls ${LOCAL_TARBALL_PREFIX}* | sort -bnr)
+        do
+            count=$(($count + 1))
+            # Delete anything older than KEEP
+            if [ $count -gt $KEEP ]; then
+              if [ "x$BACKUP_TEST" = "x" ]; then
+                log "Deleting $backup_file"
+                rm -f $backup_file
+              else
+                log "In test mode - would delete $backup_file"
+              fi
+            fi
+        done
+    fi
+}
+
+gen_archive_name() {
+    daysago=${1:-0}
+    # date in epochtime
+    now=$(date +"%s")
+    # subtract ndays needed
+    before=$(($now - ($daysago*3600*24)))
+    ds=$(date -d "@$before" +"%Y%m%d")
+
+    echo "$LOCAL_TARBALL_PREFIX.$ds.tar.gz"
+}
+
+rotate() {
+    local level=${1:-0}
+    if [ $level -gt $MAX_RECURSION ]; then
+        log "rotate: bailing, hit max recursion depth of $MAX_RECURSION"
+    else
+        local today_archive=$(gen_archive_name $level)
+        local yesterday_archive=$(gen_archive_name $(($level+1)))
+        log "today's archive name - $level is $today_archive"
+        if [ -e "$today_archive" ]; then
+            level=$(($level + 1))
+            rotate $level
+            if [ "x$BACKUP_TEST" = "x" ]; then
+                log "moving $today_archive to $yesterday_archive"
+                mv -n $today_archive $yesterday_archive || die "mv should not have failed"
+            else
+                log "in test mode: would rotate $today_archive to $yesterday_archive"
+            fi
+        else
+            log "$today_archive does not exist - end of rotation"
+        fi
+
+    fi
+}
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <config file>" 1>&2
+    exit 1
+fi
+
+config_file=$1
+if [ "x$config_file" = "x" ]; then
+    echo "ERROR: a configuration file is required" 1>&2
+    exit 1
+fi
+
+if [ -e $config_file ]; then
+    . $config_file
+else
+    die "$config_file does not exist"
+fi
+
+# Check CLOBBER setting in file
+clobber=${CLOBBER:-no}
+
+ds=`date +"%Y%m%d"`
+outfile="$LOCAL_TARBALL_PREFIX.$ds.tar.gz"
+
+confirm_config
+confirm_ssh
+
+log "parachute backup starting"
+log "========================="
+
+cd $OUTPUT_DIRECTORY || die "Failed to cd to $OUTPUT_DIRECTORY"
+
+if [ -e $outfile -a -s $outfile ]; then
+    if [ "$clobber" = "no" ]; then
+        die "$outfile exists already - not overwriting"
+    elif [ "$clobber" = "rotate" ]; then
+        log "$outfile exists - rotating"
+        rotate
+    else
+        log "clobber set to yes - deleting and overwriting"
+        rm -f $outfile
+    fi
+fi
+
+if [ "x$BACKUP_TEST" = "x" ]; then
+    # Run pre-backup command if defined
+    if [ "x$PRE_BACKUP" != "x" ]; then
+        log "pre-backup command defined as: '$PRE_BACKUP' - running..."
+        if [ "x$BACKUP_HOST" = "xlocal" ]; then
+            $PRE_BACKUP || die "pre-backup command failed"
+        else
+            ssh ${BACKUP_USER}@${BACKUP_HOST} "$PRE_BACKUP" || die "pre-backup command failed for ${BACKUP_HOST}"
+        fi
+    fi
+
+    if [ "x$BACKUP_HOST" = "xlocal" ]; then
+        log "Backup $REL_REMOTE_PATHS to local file $outfile..."
+        tar -C / -zcf $outfile $REL_REMOTE_PATHS
+    else
+        log "Backup up remote dirs $REL_REMOTE_PATHS to local file $outfile..."
+        ssh ${BACKUP_USER}@${BACKUP_HOST} tar -C / -zcf - $REL_REMOTE_PATHS | cat > $outfile
+    fi
+    if [ $? -eq 0 ]
+    then
+        log "Backup succeeded"
+    else
+        die "Backup failed"
+    fi
+    # Check for a size zero backup.
+    if [ -s $outfile ]
+    then
+        :
+    else
+        die "Backup failed: output file is size zero"
+    fi
+
+else
+    log "In test mode - would run this command"
+    log "ssh ${BACKUP_USER}@${BACKUP_HOST} tar -C / -zcf - $REL_REMOTE_PATHS | cat > $outfile"
+fi
+
+removeold
+
+log "Done"
+
+exit 0

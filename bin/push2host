@@ -1,0 +1,27 @@
+#!/bin/sh
+# Expected use:
+# echo $filelist | push2host vm3
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <host> # files in stdin" 1>&2
+    exit 1
+fi
+
+host=$1
+
+while read infile
+do
+    if echo $infile | egrep -q '^(./)?root/'
+    then
+        destpath=$(echo $infile | perl -pe 's;^(./)?root;;')
+        destpath=$(dirname $destpath)
+        echo "Copying $infile to $destpath on $host"
+        if [ -n "$PUSH_DRY_RUN" ]; then
+            echo "dry run, skipping scp"
+        else
+            scp $PUSH_SCP_PORT $infile $host:$destpath
+        fi
+    else
+        echo "Skipping $infile"
+    fi
+done

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+address=$(ifconfig wlan0 | grep 'inet ' | awk '{print $2}')
+url=http://digitaltorque.ca/cgi-bin/hello?address=$address
+
+curl $url
+
+exit 0

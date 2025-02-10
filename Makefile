@@ -29,22 +29,14 @@ help:
 all: go rust strerror countdown csize
 
 install: all
-	mkdir -p ${INSTALLROOT}/bin
-	install -d ${INSTALLROOT}/.irssi/scripts
-	install -m 755 bin/sane-filenames.py ${INSTALLROOT}/bin/sf.py
-	install -m 755 bin/mike_notify.pl ${INSTALLROOT}/.irssi/scripts/mike_notify.pl
-	install -m 755 bin/vga-on.py ${INSTALLROOT}/bin/vga-on.py
-	install -m 755 bin/vga-off.sh ${INSTALLROOT}/bin/vga-off.sh
-	install -m 755 bin/weather.py ${INSTALLROOT}/bin/weather.py
-	install -m 755 bin/lid2suspend.py ${INSTALLROOT}/bin/lid2suspend.py
-	install -m 755 bin/manage-photos.py ${INSTALLROOT}/bin/manage-photos.py
-	install -m 755 bin/rclone_proton_push.sh ${INSTALLROOT}/bin/rclone_proton_push.sh
+	if [ ! -d ${INSTALLROOT}/bin ]; then mkdir ${INSTALLROOT}/bin; fi
+	cp bin/* ${INSTALLROOT}/bin && chmod 755 ${INSTALLROOT}/bin/*
 	cd src/jsonpp && make install INSTALLROOT=${INSTALLROOT}
 	cd src/twig && make && cp twig ${INSTALLROOT}/bin
 	mv $(GPATH)/bin/* $(INSTALLROOT)/bin
-	cp strerror ${INSTALLROOT}/bin
-	cp countdown ${INSTALLROOT}/bin
-	cp csize ${INSTALLROOT}/bin
+	mv strerror ${INSTALLROOT}/bin
+	mv countdown ${INSTALLROOT}/bin
+	mv csize ${INSTALLROOT}/bin
 
 strerror: src/strerror.c
 	$(CC) $(CFLAGS) -o strerror src/strerror.c

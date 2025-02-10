@@ -1,0 +1,14 @@
+#!/bin/sh
+
+MESSAGE=$(cat)
+cachefile=$HOME/.address_cache.txt
+
+address=$(echo "${MESSAGE}" | grep ^"From: " | sed s/[\,\"\']//g | awk '{$1=""; if (NF == 3) {print "alias" $0;} else if (NF == 2) {print "alias" $0 $0;} else if (NF > 3) {print "alias", tolower($(NF-1))"-"tolower($2) $0;}}' | sed s'/mailto://g' | sed s'/\[/</g' | sed s'/\]/>/g')
+
+if grep -Fxq "$address" $cachefile; then
+    :
+else
+    echo "$address" >> $cachefile
+fi
+
+echo "${MESSAGE}"

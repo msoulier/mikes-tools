@@ -1,0 +1,21 @@
+#!/bin/sh
+
+count=0
+while true
+do
+    mod=$(expr $count % 15)
+    if [ $mod -eq 0 ]; then
+        command=offlineimap
+    else
+        command="offlineimap -c $HOME/.offlineimap.minimal.rc"
+    fi
+    echo $(date) ": running offlineimap"
+    $command
+    if [ $? = 0 ]; then
+        echo $(date) ": sleeping for one minute"
+        sleep 60
+    else
+        echo $(date) ": error in offlineimap - retrying"
+    fi
+    count=$(expr $count + 1)
+done

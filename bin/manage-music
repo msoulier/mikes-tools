@@ -1,0 +1,23 @@
+#!/bin/sh
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <directory>" 1>&2
+    exit 1
+fi
+
+dir=$1
+
+if [ -d $dir ]; then
+    cd $dir || exit 1
+    sane-filenames *
+    for m in *.m4a
+    do
+        echo; echo $m
+        new=${m%%.m4a}.mp3
+        rm -f $new
+        ffmpeg -i $m -acodec mp3 -ac 2 -ab 192k $new && rm $m
+        if [ $? != 0 ]; then
+            rm -f $new
+        fi
+    done
+fi

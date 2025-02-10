@@ -1,0 +1,29 @@
+#!/usr/bin/python3
+
+import vobject, sys
+
+if len(sys.argv) > 1:
+    istream = open(sys.argv[1], "r")
+else:
+    istream = sys.stdin
+
+cal = vobject.readOne(istream)
+print("Start:", cal.vevent.dtstart.valueRepr())
+print("End:", cal.vevent.dtend.valueRepr())
+print("Location:", cal.vevent.location.valueRepr())
+try:
+    print("Organizer:", cal.vevent.organizer.valueRepr())
+except:
+    print("Unknown")
+print("Summary:", cal.vevent.summary.valueRepr())
+print("Attendees:")
+for contentline in cal.vevent.getChildren():
+    if contentline.name == 'ATTENDEE':
+        print("    ", contentline.value)
+print("Description:")
+try:
+    print(cal.vevent.description.valueRepr())
+except AttributeError:
+    print("    None")
+
+sys.exit(0)
