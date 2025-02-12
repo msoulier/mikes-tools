@@ -48,7 +48,6 @@ csize: src/csize.c
 	$(CC) $(CFLAGS) -o csize src/csize.c
 
 rust:
-	if [ ! -d ${INSTALLROOT}/.cargo ]; then curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh; fi
 	@echo "Installing macchina"
 	nice -n 10 cargo install macchina
 	#@echo "Installing uv"
