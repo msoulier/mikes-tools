@@ -13,7 +13,7 @@ ifeq ($(DEBUG),1)
 	CFLAGS += -DDEBUG
 endif
 
-.PHONY: all clean go
+.PHONY: all clean go rust install clean
 
 help:
 	@echo "Targets:"
@@ -26,7 +26,7 @@ help:
 	@echo "    install"
 	@echo "    clean"
 
-all: go rust strerror countdown csize
+all: go strerror countdown csize
 
 install: all
 	if [ ! -d ${INSTALLROOT}/bin ]; then mkdir ${INSTALLROOT}/bin; fi
@@ -48,6 +48,7 @@ csize: src/csize.c
 	$(CC) $(CFLAGS) -o csize src/csize.c
 
 rust:
+	if [ ! -d ${INSTALLROOT}/.cargo ]; then curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh; fi
 	@echo "Installing macchina"
 	nice -n 10 cargo install macchina
 	#@echo "Installing uv"
