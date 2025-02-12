@@ -59,8 +59,8 @@ go:
 	@echo "Installing my personal Go binaries"
 	@echo "Installing weather"
 	nice -n 10 go install github.com/msoulier/weather@latest
-	#@echo "Installing mlogd"
-	#go install github.com/msoulier/mlogd@latest
+	@echo "Installing mlogd"
+	go install github.com/msoulier/mlogd@latest
 	@echo "Installing pcp"
 	nice -n 10 go install github.com/msoulier/pcp@latest
 	@echo "Installing webserver"
