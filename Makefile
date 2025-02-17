@@ -13,7 +13,7 @@ ifeq ($(DEBUG),1)
 	CFLAGS += -DDEBUG
 endif
 
-.PHONY: all clean go
+.PHONY: all clean go rust install clean
 
 help:
 	@echo "Targets:"
@@ -26,7 +26,7 @@ help:
 	@echo "    install"
 	@echo "    clean"
 
-all: go rust strerror countdown csize
+all: go strerror countdown csize
 
 install: all
 	if [ ! -d ${INSTALLROOT}/bin ]; then mkdir ${INSTALLROOT}/bin; fi
@@ -59,8 +59,8 @@ go:
 	@echo "Installing my personal Go binaries"
 	@echo "Installing weather"
 	nice -n 10 go install github.com/msoulier/weather@latest
-	#@echo "Installing mlogd"
-	#go install github.com/msoulier/mlogd@latest
+	@echo "Installing mlogd"
+	go install github.com/msoulier/mlogd@latest
 	@echo "Installing pcp"
 	nice -n 10 go install github.com/msoulier/pcp@latest
 	@echo "Installing webserver"
