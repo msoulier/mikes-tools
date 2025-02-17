@@ -91,7 +91,7 @@ go:
 	@echo "Installing goimports"
 	nice -n 10 go install golang.org/x/tools/cmd/goimports@latest
 	@echo "Installing hugo"
-	CGO_ENABLED=1 go install -tags extended github.com/gohugoio/hugo@latest
+	CGO_ENABLED=1 nice -n 10 go install -tags extended github.com/gohugoio/hugo@latest
 	@echo "Installing curlie"
 	nice -n 10 go install github.com/rs/curlie@latest
 
