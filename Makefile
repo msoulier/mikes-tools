@@ -94,6 +94,8 @@ go:
 	CGO_ENABLED=1 nice -n 10 go install -tags extended github.com/gohugoio/hugo@latest
 	@echo "Installing curlie"
 	nice -n 10 go install github.com/rs/curlie@latest
+	@echo "Installing delve"
+	nice -n 10 go install github.com/go-delve/delve/cmd/dlv@latest
 
 clean:
 	rm -f strerror countdown csize
