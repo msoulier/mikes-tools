@@ -19,14 +19,13 @@ help:
 	@echo "    install"
 	@echo "    clean"
 
-all: go strerror countdown csize
+all: strerror countdown csize
 
 install: all
 	if [ ! -d ${INSTALLROOT}/bin ]; then mkdir ${INSTALLROOT}/bin; fi
 	cp bin/* ${INSTALLROOT}/bin && chmod 755 ${INSTALLROOT}/bin/*
 	cd src/jsonpp && make install INSTALLROOT=${INSTALLROOT}
 	cd src/twig && make && cp twig ${INSTALLROOT}/bin
-	mv $(GPATH)/bin/* $(INSTALLROOT)/bin
 	mv strerror ${INSTALLROOT}/bin
 	mv countdown ${INSTALLROOT}/bin
 	mv csize ${INSTALLROOT}/bin
