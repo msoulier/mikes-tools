@@ -13,13 +13,13 @@ endif
 help:
 	@echo "Targets:"
 	@echo "    strerror"
-	@echo "    countdown"
+	@echo "    mcount"
 	@echo "    csize"
 	@echo "    all"
 	@echo "    install"
 	@echo "    clean"
 
-all: strerror countdown csize
+all: strerror mcount csize
 
 install: all
 	if [ ! -d ${INSTALLROOT}/bin ]; then mkdir ${INSTALLROOT}/bin; fi
@@ -27,19 +27,19 @@ install: all
 	cd src/jsonpp && make install INSTALLROOT=${INSTALLROOT}
 	cd src/twig && make && cp twig ${INSTALLROOT}/bin
 	mv strerror ${INSTALLROOT}/bin
-	mv countdown ${INSTALLROOT}/bin
+	mv mcount ${INSTALLROOT}/bin
 	mv csize ${INSTALLROOT}/bin
 
 strerror: src/strerror.c
 	$(CC) $(CFLAGS) -o strerror src/strerror.c
 
-countdown: src/countdown.c
-	$(CC) $(CFLAGS) -o countdown src/countdown.c
+mcount: src/mcount.c
+	$(CC) $(CFLAGS) -o mcount src/mcount.c
 
 csize: src/csize.c
 	$(CC) $(CFLAGS) -o csize src/csize.c
 
 clean:
-	rm -f strerror countdown csize
+	rm -f strerror mcount csize
 	cd src/jsonpp && make clean
 	cd src/twig && make clean
