@@ -21,6 +21,16 @@ do
         else
             scp $PUSH_SCP_PORT $infile $host:$destpath
         fi
+    elif echo $infile | egrep -q '^(./)?source/.*/root/'
+    then
+        destpath=$(echo $infile | perl -pe 's;^(./)?source/[^/]+/root;;')
+        destpath=$(dirname $destpath)
+        echo "Copying $infile to $destpath on $host"
+        if [ -n "$PUSH_DRY_RUN" ]; then
+            echo "dry run, skipping scp"
+        else
+            scp $PUSH_SCP_PORT $infile $host:$destpath
+        fi
     else
         echo "Skipping $infile"
     fi
