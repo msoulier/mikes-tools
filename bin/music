@@ -1,20 +1,14 @@
 #!/bin/sh
 
-usage="$0 <verb>"
+usage="$0 <music player> <verb> (supported players: cmus | spotify)"
 
-if [ $# -lt 1 ]; then
+if [ $# -lt 2 ]; then
     echo "Usage: $usage" 1>&2
     exit 1
 fi
 
-verb=$1
-
-if [ -e "$HOME/.music.player" ]; then
-    player=$(cat $HOME/.music.player)
-else
-    echo "No $HOME/.music.player file!" 1>&2
-    exit 1
-fi
+player=$1
+verb=$2
 
 echo "player $player, verb $verb"
 
