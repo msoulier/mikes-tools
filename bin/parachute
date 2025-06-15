@@ -16,7 +16,7 @@ CLOBBER=
 MAX_RECURSION=${MAX_RECURSION:-30}
 ##########################
 
-LOG_DIR=${LOG_DIR:-$HOME/log}
+LOG_DIR=${LOG_DIR:-$HOME/logs}
 
 die() {
     msg=$1
