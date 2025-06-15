@@ -1,41 +1,74 @@
 #!/usr/bin/python3
 
 import hashlib, os, sys
+import argparse
 
 all_files = {}
 
-def visit(dirname, names):
+def visit(dirname, names, options):
     print("    visiting", dirname)
     for name in sorted(names):
         full_path = os.path.join(dirname, name)
         if os.path.isfile(full_path):
-            with open(full_path, "rb") as f:
-                md5 = hashlib.md5(f.read()).hexdigest()
-                if md5 not in all_files:
-                    all_files[md5] = []
-                all_files[md5].append(full_path)
+            if not options.by_extension:
+                with open(full_path, "rb") as f:
+                    md5 = hashlib.md5(f.read()).hexdigest()
+                    if md5 not in all_files:
+                        all_files[md5] = []
+                        all_files[md5].append(full_path)
+            else:
+                if name.find('.') > 0:
+                    pieces = name.split('.')
+                    front = '.'.join(pieces[:-1])
+                    ext = pieces[-1]
+                    if front not in all_files:
+                        all_files[front] = []
+                    all_files[front].append(full_path)
+                else:
+                    if name not in all_files:
+                        all_files[name] = []
+                    all_files[name].append(full_path)
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="dup-finder")
+    parser.add_argument(
+        '-d',
+        '--directory',
+        required=True,
+        action='store',
+        help='The directory root to search at')
+    parser.add_argument(
+        '-x',
+        '--by-extension',
+        action='store_true',
+        default=False,
+        dest='by_extension',
+        help='Look instead for files differing only by their extensions')
+    parser.add_argument(
+        '-D',
+        '--delete',
+        action='store_true',
+        default=False,
+        help='Prompt to delete duplicates found')
+    options = parser.parse_args()
+    return options
 
 def main():
-    delete = False
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [-d] <directory>\n" % sys.argv[0])
-        sys.exit(1)
-    print("building md5 list of files...")
-    for idir in sys.argv[1:]:
-        if idir == "-d":
-            delete = True
-            print("duplicate deletion enabled")
-            continue
-        for root, dirs, files in os.walk(idir):
-            visit(root, files)
+    options = parse_args()
+    if options.by_extension:
+        print("building file list...")
+    else:
+        print("building md5 list of files...")
+    for root, dirs, files in os.walk(options.directory):
+        visit(root, files, options)
 
     print("looking for duplicates...")
-    for md5 in all_files:
-        if len(all_files[md5]) > 1:
+    for key in all_files:
+        if len(all_files[key]) > 1:
             print("    duplicates found:")
-            for i, dup in enumerate(all_files[md5]):
+            for i, dup in enumerate(all_files[key]):
                 print("        ", dup)
-                if delete and i > 0:
+                if options.delete and i > 0:
                     answer = input("         ^^^^ delete? [y/N] ")
                     if answer == "y":
                         os.unlink(dup)
