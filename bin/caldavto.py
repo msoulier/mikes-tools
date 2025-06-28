@@ -1,9 +1,10 @@
-#!/home/msoulier/envs/caldav/bin/python
+#!/home/msoulier/.pyenv/versions/3.12.11/envs/caldav/bin/python
 
 import caldav
 from datetime import datetime, timedelta
 import pytz
 import os
+from typing import Dict
 
 #########################################################################
 # Office 365
@@ -16,7 +17,7 @@ assert( password != "" )
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 output_format = "org"
 
-def fill_event(component, calendar) -> dict[str, str]:
+def fill_event(component, calendar) -> Dict[str, str]:
     cur = {}
     cur["calendar"] = f"{calendar}"
     cur["summary"] = component.get("summary")
