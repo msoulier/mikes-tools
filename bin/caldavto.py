@@ -1,8 +1,8 @@
 #!/home/msoulier/.pyenv/versions/3.12.11/envs/caldav/bin/python
 
 import caldav
-from datetime import datetime, timedelta
-import pytz
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import os
 from typing import Dict
 
@@ -30,7 +30,7 @@ def fill_event(component, calendar) -> Dict[str, str]:
     return cur
 
 def main():
-    mytz = pytz.timezone('America/Montreal')
+    mytz = ZoneInfo('America/Montreal')
     with caldav.DAVClient(url=url,
                           username=username,
                           password=password) as client:
@@ -56,9 +56,11 @@ def main():
                 start = event["start"]
                 try:
                     start = start.astimezone(mytz)
+                    #start = start.replace(tzinfo=mytz)
                 except:
                     start = datetime.combine(start.today(), datetime.min.time())
                     start = start.astimezone(mytz)
+                    #start = start.replace(tzinfo=mytz)
                 if output_format == "remind":
                     print("REM %s AT %s MSG %%\"%s%%\", %%b, %%2" %
                         (start.strftime("%b %d"), start.strftime("%H:%M"), event["summary"]))
