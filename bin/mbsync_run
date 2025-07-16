@@ -1,0 +1,12 @@
+#!/bin/sh
+
+count=0
+while true
+do
+    echo $(date) ": running mbsync"
+    time mbsync -a
+    echo $(date) ": running notmuch"
+    time notmuch new
+    echo $(date) ": sleeping for one minute"
+    sleep 60
+done
