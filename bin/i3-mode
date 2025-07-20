@@ -1,0 +1,30 @@
+#!/bin/sh
+
+if [ $# -lt 1 ]; then
+    mode=$1
+else
+    echo "ERROR: $0 <mode>" 1>&2
+    echo "       modes: mobile|homedocking|workdocking" 1>&2
+    exit 1
+fi
+
+xrandr --auto
+
+case "$mode" in
+    mobile)
+        ;;
+
+    homedocking)
+        xrandr --output eDP-1 --off
+        ;;
+
+    workdocking)
+        xrandr --output eDP-1 --off
+        # FIXME: Set up two monitors.
+        ;;
+
+    *)
+        echo "No such mode: $mode" 1>&2
+        exit 1
+        ;;
+esac

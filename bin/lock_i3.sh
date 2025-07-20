@@ -6,7 +6,7 @@ screenwidth=$(echo $screenres | awk -Fx '{print $1}')
 halfwidth=$((($screenwidth / 2) - 128))
 halfheight=$((($screenheight / 2) - 128))
 
-icon="$HOME/wm/lockicon"
+icon="$HOME/lockicon"
 tmpbg='/tmp/screen.png'
 rm -f $tmpbg
 
