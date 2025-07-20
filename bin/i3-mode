@@ -12,14 +12,17 @@ xrandr --auto
 
 case "$mode" in
     mobile)
+        nmcli radio wifi on
         ;;
 
     homedocking)
         xrandr --output eDP-1 --off
+        nmcli radio wifi off
         ;;
 
     workdocking)
         xrandr --output eDP-1 --off
+        nmcli radio wifi off
         # FIXME: Set up two monitors.
         ;;
 
