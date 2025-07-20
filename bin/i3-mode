@@ -1,11 +1,11 @@
 #!/bin/sh
 
 if [ $# -lt 1 ]; then
-    mode=$1
-else
-    echo "ERROR: $0 <mode>" 1>&2
+    echo "Usage: $0 <mode>" 1>&2
     echo "       modes: mobile|homedocking|workdocking" 1>&2
     exit 1
+else
+    mode=$1
 fi
 
 xrandr --auto
