@@ -1,0 +1,57 @@
+#!/bin/sh
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <mode>" 1>&2
+    echo "       modes: mobile|homedocking|workdocking" 1>&2
+    exit 1
+else
+    mode=$1
+fi
+
+xrandr --auto
+
+manage_polybar() {
+    location=${1:-nowhere}
+    killall polybar
+    # We only run polybar with herbstluftwm right now.
+    if [ ${WINDOWMANAGER:-i3] = "herbstluftwm" ]; then
+        case "$location" in
+            mobile)
+                polybar laptop &
+                ;;
+            homedocking)
+                polybar dockingstation &
+                ;;
+            workdocking)
+                polybar work-dockingstation &
+                ;;
+            *)
+                echo "ERROR bad location: $location" 1>&2
+                ;;
+        esac
+    fi
+}
+
+case "$mode" in
+    mobile)
+        nmcli radio wifi on
+        manage_polybar mobile
+        ;;
+
+    homedocking)
+        xrandr --output eDP-1 --off
+        nmcli radio wifi off
+        manage_polybar homedocking
+        ;;
+
+    workdocking)
+        xrandr --output eDP-1 --off
+        nmcli radio wifi off
+        manage_polybar workdocking
+        ;;
+
+    *)
+        echo "No such mode: $mode" 1>&2
+        exit 1
+        ;;
+esac
