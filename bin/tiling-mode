@@ -14,7 +14,7 @@ manage_polybar() {
     location=${1:-nowhere}
     killall polybar
     # We only run polybar with herbstluftwm right now.
-    if [ ${WINDOWMANAGER:-i3] = "herbstluftwm" ]; then
+    if [ ${WINDOWMANAGER:-i3} = "herbstluftwm" ]; then
         case "$location" in
             mobile)
                 polybar laptop &
