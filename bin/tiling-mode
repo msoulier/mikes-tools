@@ -34,6 +34,7 @@ manage_polybar() {
 
 case "$mode" in
     mobile)
+        xrandr --output eDP-1 --on
         nmcli radio wifi on
         manage_polybar mobile
         ;;
