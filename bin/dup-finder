@@ -71,6 +71,7 @@ def main():
                 if options.delete and i > 0:
                     answer = input("         ^^^^ delete? [y/N] ")
                     if answer == "y":
+                        print("==> deleting", dup)
                         os.unlink(dup)
 
 if __name__ == '__main__':
