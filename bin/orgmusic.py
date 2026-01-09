@@ -3,13 +3,17 @@
 from pymediainfo import MediaInfo
 import sys
 import os
+import os.path
 import re
 import shutil
+import argparse
 
 class MusicFile:
-    def __init__(self, path, ext):
+    def __init__(self, path):
         self.path = path
-        self.ext = ext
+        self.path_no_ext, self.ext = self.parse_path()
+        if self.ext is None:
+            return None
         self.album = None
         self.performer = None
         self.genre = None
@@ -27,6 +31,15 @@ class MusicFile:
             buf += "%s: %s" % (field, value)
             buf += "\n"
         return buf
+
+    def parse_path(self):
+        file_types = ["mp3", "m4a"]
+        for ftype in file_types:
+            if self.path.endswith("." + ftype):
+                no_ext = self.path[:-4]
+                ext = ftype
+                return (no_ext, ext)
+        return None, None
 
     def load(self):
         self.info = MediaInfo.parse(self.path)
@@ -92,36 +105,70 @@ def manage(out_root, fobj):
         print("*** data missing needed to compose new path ***")
         return False
 
+def parse_options():
+    parser = argparse.ArgumentParser(description="Music manager")
+    parser.add_argument('-g',
+                        '--genre-report',
+                        dest='genre',
+                        action='store_true',
+                        default=False,
+                        help='Just query music and generate a genre report')
+    parser.add_argument('input',
+                        action='append',
+                        nargs='+',
+                        default=[],
+                        help="Directories of files or files")
+    options = parser.parse_args()
+    return options
+
 def main():
-    if len(sys.argv) < 3:
-        sys.stderr.write("Usage: %s <input dir> <output dir>\n" % sys.argv[0])
+    options = parse_options()
+    if len(options.input) < 1:
+        sys.stderr.write("Usage: %s [options] <input dir or files> [output dir]\n" % sys.argv[0])
         sys.exit(1)
 
-    in_root = sys.argv[1]
-    out_root = sys.argv[2]
+    input_files = options.input[0]
+    if len(input_files) > 1:
+        in_roots = input_files[:-1]
+        out_root = input_files[-1]
+    else:
+        in_roots = input_files[0]
+        out_root = None
 
     unmanaged = []
+    all_files = []
 
-    for dirpath, dirnames, filenames in os.walk(in_root):
-        for filename in filenames:
-            path = os.path.join(dirpath, filename)
-            print("opening", path)
-            if filename.endswith('.mp3'):
-                fobj = MusicFile(path, 'mp3')
-            elif filename.endswith('.m4a'):
-                fobj = MusicFile(path, 'm4a')
+    for in_root in in_roots:
+        if os.path.isdir(in_root):
+            for dirpath, dirnames, filenames in os.walk(in_root):
+                for filename in filenames:
+                    path = os.path.join(dirpath, filename)
+                    fobj = MusicFile(path)
+                    if fobj is not None:
+                        all_files.append(fobj)
+                    else:
+                        unmanaged.append(path)
+        else:
+            fobj = MusicFile(in_root)
+            if fobj is not None:
+                all_files.append(fobj)
             else:
                 unmanaged.append(path)
-                continue
-            handled = manage(out_root, fobj)
-            if handled:
-                print(fobj)
-                print('')
-            else:
-                unmanaged.append(path)
 
-    print("Unmanaged files:")
-    for path in unmanaged:
-        print("    ", path)
+    print("All files:")
+    for fobj in all_files:
+        print(fobj)
+
+    #for fobj in all_files:
+    #    handled = manage(out_root, fobj)
+    #    if handled:
+    #        print(fobj)
+    #        print('')
+    #    else:
+    #        unmanaged.append(path)
+
+    #print("Unmanaged files:")
+    #for path in unmanaged:
+    #    print("    ", path)
 
 main()

@@ -1,4 +1,4 @@
-#!/home/msoulier/.pyenv/versions/3.12.11/envs/caldav/bin/python
+#!/usr/bin/python3
 
 import caldav
 from datetime import datetime, timedelta, timezone
