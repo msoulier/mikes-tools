@@ -15,7 +15,7 @@ assert( password != "" )
 #########################################################################
 
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-output_format = "org"
+output_format = os.environ.get("FORMAT", "org")
 
 def fill_event(component, calendar) -> Dict[str, str]:
     cur = {}
