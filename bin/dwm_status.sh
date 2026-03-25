@@ -1,6 +1,8 @@
 #!/bin/sh
 
 DEFSINK=$(pactl get-default-sink)
+SEPARATOR="⎥"
+SPEAKER="🔊"
 
 while true
 do
@@ -14,7 +16,8 @@ do
     ROOTDISK=$(df -h / | tail -1 | awk '{print $5}')
     DATETIME=$(date +"%A %b %e %Y %H:%M:%S %z")
     BAT=$(acpi)
-    LINE="Vol $VOL $MUTED | / $ROOTDISK | $BAT | $DATETIME"
+    #LINE="Vol $VOL $MUTED | / $ROOTDISK | $BAT | $DATETIME"
+    LINE=$(printf "%s %s %s %s / %s %s %s %s %s" $SPEAKER $VOL $MUTED $SEPARATOR $ROOTDISK $SEPARATOR $BAT $SEPARATOR $DATETIME)
     xsetroot -name "$LINE"
     sleep 2
 done

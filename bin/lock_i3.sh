@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 2880x1800
 
 screenres=$(xrandr |awk '/\*/ {print $1}')
 screenheight=$(echo $screenres | awk -Fx '{print $2}')
@@ -12,8 +13,17 @@ rm -f $tmpbg
 
 (( $# )) && { icon=$1; }
 
-scrot "$tmpbg"
-convert "$tmpbg" -scale 10% -scale 1000% "$tmpbg"
-convert "$tmpbg" "$icon" -geometry 256x256+$halfwidth+$halfheight -composite -matte "$tmpbg"
+#scrot "$tmpbg"
+#convert "$tmpbg" -scale 10% -scale 1000% "$tmpbg"
+#convert "$tmpbg" "$icon" -geometry 256x256+$halfwidth+$halfheight -composite -matte "$tmpbg"
+#convert "$tmpbg" "$icon" -geometry 256x256+$screenwidth+$screenheight -composite -matte "$tmpbg"
+
+# Random image from nature pics
+pics=$HOME/Pictures/wallpaper/nature
+image=$(find $pics -type f | sort --random-sort | head -1)
+cp $image $tmpbg
+#convert "$tmpbg" -scale 10% -scale 1000% "$tmpbg"
+#convert "$tmpbg" "$icon" -geometry 256x256+$halfwidth+$halfheight -composite -matte "$tmpbg"
 convert "$tmpbg" "$icon" -geometry 256x256+$screenwidth+$screenheight -composite -matte "$tmpbg"
+
 i3lock -i "$tmpbg"
