@@ -7,7 +7,7 @@ import urllib.request, sys
 from xml.etree.ElementTree import parse
 from optparse import OptionParser
 
-rssfeed = 'http://weather.gc.ca/rss/city/on-118_e.xml'
+rssfeed = 'https://weather.gc.ca/rss/weather/45.314_-75.902_e.xml'
 ns = {'rss': 'http://www.w3.org/2005/Atom'}
 
 def parse_options():

@@ -12,6 +12,7 @@ class MusicFile:
     def __init__(self, path):
         self.path = path
         self.path_no_ext, self.ext = self.parse_path()
+        self.fields = []
         if self.ext is None:
             return None
         self.album = None
@@ -83,6 +84,7 @@ def cleanstring(dirty):
     dirty = re.sub(r'\*', '-', dirty)
     dirty = re.sub(r'!', '', dirty)
     dirty = re.sub(r'&', 'and', dirty)
+    dirty = re.sub(r'^\.+', '', dirty)
     return dirty
 
 def manage(out_root, fobj):
@@ -134,6 +136,7 @@ def main():
     else:
         in_roots = input_files[0]
         out_root = None
+    print("out_root is", out_root)
 
     unmanaged = []
     all_files = []
@@ -159,16 +162,20 @@ def main():
     for fobj in all_files:
         print(fobj)
 
-    #for fobj in all_files:
-    #    handled = manage(out_root, fobj)
-    #    if handled:
-    #        print(fobj)
-    #        print('')
-    #    else:
-    #        unmanaged.append(path)
+    for fobj in all_files:
+        print("managing:", fobj)
+        try:
+            handled = manage(out_root, fobj)
+            if handled:
+                print(fobj)
+                print('')
+            else:
+                unmanaged.append(path)
+        except Exception as err:
+            print("ERROR:", err, file=sys.stderr)
 
-    #print("Unmanaged files:")
-    #for path in unmanaged:
-    #    print("    ", path)
+    print("Unmanaged files:")
+    for path in unmanaged:
+        print("    ", path)
 
 main()
