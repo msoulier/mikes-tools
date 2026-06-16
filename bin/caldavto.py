@@ -14,10 +14,11 @@ log.setLevel(logging.INFO)
 
 #########################################################################
 # Office 365
-url = "http://localhost:1080/users/michael.soulier@mitel.com/calendar/"
-username = "michael.soulier@mitel.com"
+username = os.environ.get("MITELUSER", "")
+assert username != ""
 password = os.environ.get("MITELPASS", "")
 assert( password != "" )
+url = f"http://localhost:1080/users/{username}/calendar/"
 #########################################################################
 
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
